@@ -1,1 +1,77 @@
-learn how to use Git
+Stage:
+Git管理的文件分为：工作区，版本库，版本库又分为暂存区stage和暂存区分支master(仓库)
+HEAD指向的版本就是当前版本，因此，Git允许我们在版本的历史之间穿梭，使用命令git reset --hard commit_id。
+穿梭前，用git log可以查看提交历史，以便确定要回退到哪个版本。
+要重返未来，用git reflog查看命令历史，以便确定要回到未来的哪个版本。
+
+工作区与暂存区仓库的交互：
+工作区>>>>暂存区>>>>仓库
+git add把文件从工作区>>>>暂存区，git commit把文件从暂存区>>>>仓库；
+git diff查看工作区和暂存区差异，git diff --cached查看暂存区和仓库差异，git diff HEAD 查看工作区和仓库的差异；
+git add的反向命令git checkout，撤销工作区修改，即把暂存区最新版本转移到工作区；
+git commit的反向命令git reset HEAD，就是把仓库最新版本转移到暂存区。
+git status 就是查看每次修改的文件状态
+
+撤销修改：
+情况1：在工作区做了修改，并未添加到暂存区，想撤销工作区的修改，用 git restore file;
+情况2：在工作区做了修改，并用git add 添加到了暂存区，未提交；想撤销，分两步，
+	1.先撤销暂存区的修改，用 git restore --staged file,   2.参考情况1撤销工作区的修改；
+情况3：在工作区做了修改，且git add、git commit添加并提交了内容，想撤销本次提交，直接用 git reset --hard HEAD^回退上一个版本，即可保证工作区、暂存区、版本库都是上次的内容
+
+删除文件：删除也是一个修改操作，
+rm = 手动删除
+git rm = 手动删除，然后git add提交到暂存区
+git restore可以从暂存区恢复。
+rm或手动删除后有两种情况：
+（1）确定从版本库删除：git rm + git commit
+（2）从版本库误删：	     git checkout,用版本库版本替换工作区版本
+【注】从没添加到版本库就被删除的无法恢复。
+
+以上都是在本地库上做的一些修改，实际上如果要团队工作就需要关联远程仓库，下面对远程仓库进行操作
+1 添加远程仓库
+首先登陆Github，Create repository创建一个Git仓库，然后与本地仓库关联。
+在本地的learngit仓库下运行命令：git remote add origin git@github.com:xxx/yyy.git 
+xxx表示Github账户名，yyy表示仓库名。，origin是远程库名，这样就不仅仅关联而且可以远程push
+git push -u origin master就是吧本地分支master推送到远程。后面修改之后再提交只需 git push origin master即可
+2 从远程库克隆
+git clone xxx, xxx表示一个git或https网址，克隆一个本地库，这样就可以各自远程克隆多人协作开发。
+如果报错需要1 重置一下账户/密码，2 github添加自己电脑的SSH key。
+
+多人协作就涉及到分支管理，同时push代码、不同开发人员本地库与远程仓库的冲突等等，下面介绍Git的分支管理：
+1 分支创建与合并
+master是一条主线也叫主分支，HEAD指向master，当需要切换分支时候，HEAD又指向切换的分支，以后任何的提交都是在切换的分支下面，
+但是master主分支还停留在原地，可以通过merge合并分支，那么就合到主分支了。这样的好处是 多人在不同的branch下面开发，互不影响也不
+影响主分支master，开发完之后可以拉取该分支进行验证，确定没问题之后合入主分支就保证了主分支的稳健性。
+Git鼓励大量使用分支：
+查看分支：git branch
+创建分支：git branch <name>
+切换分支：git checkout <name>或者git switch <name>
+创建+切换分支：git checkout -b <name>或者git switch -c <name>
+合并某分支到当前分支：git merge <name>
+删除分支：git branch -d <name>
+2 解决冲突
+理想情况是 新的分支能够快速merge到主分支，然而若是 新分支与主干分支修改了同一文件，master和新分支就分别有新的提交，
+Git不知道按照哪一个来合并了，就会出现冲突，必须手动解决冲突后才能提交。
+Git用<<<<<<<，=======，>>>>>>>标记出不同分支的内容。通过删除标记和冲突内容才能提交，完成代码合入。
+3 分支策略
+在实际开发中，我们应该按照几个基本原则进行分支管理：
+首先，master分支应该是非常稳定的，也就是仅用来release新版本，平时不能在上面干活；
+那在哪干活呢？干活都在dev分支上，也就是说，dev分支是不稳定的，到某个时候，比如1.0版本发布时，再把dev分支合并到master上，在master分支发布1.0版本；
+你和你的小伙伴们每个人都在dev分支上干活，每个人都有自己的分支，时不时地往dev分支上合并就可以了,这样即使本地不稳定，提交上也不会太大影响。
+4 Bug分支
+Git由于强大的分支功能，当程序出现Bug时，每个单独的Bug都可以通过零食创建新的分支来fix，solve之后合并分支再将临时分支删除即可。
+注意在哪个分支出的Bug就先switch到那个分支，然后创建一个新的分支。
+如果当前工作还没commit，而又必须fixBug就通过git stash保护现场，事后通过git stash pop恢复现场，并把stash内容删除。
+如果另一个分支也需要fix这个bug只需要通过 git cherry-pick xxx复制特定的提交到当前分支，xxx是提交号。
+注意dev分支比master要新很多dev要领先余master多个commit
+比如：（-代表一次commit，issue-101比master多一次提交，因为修复了bug）
+    master：----
+issue-101：-----
+         dev：----------
+合并的时候 需要把commit多的往commit少的上合并。
+所以 你把issue-101往dev合并，直接合不上去，必须先把dev的修改合到issue-101，再反过来合到dev。
+5 多人协作
+多人协作总是充满着各种各样的变数，本地与远程总是有各种冲突，慢慢solve冲突才能不断提升。
+所以䜷协作模式通常是：首先本地修改试图git push推送自己的modify，如果推送失败因为远程分支比本地要新，使用
+git pull或git fetch拉取代码合并，这时就得本地解决冲突，最后使用git push推送到远程。
+注：git pull 提示 no tracking information说明本地分支没有和远程关联，通过git branch --set-upstream-to <branch-name> origin/<branch-name>
